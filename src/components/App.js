@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import SearchEngine from "./SearchEngine";
 import Forecast from "./Forecast";
 
 import "../styles.css";
-import '@fortawesome/fontawesome-free/css/all.min.css';
+import "@fortawesome/fontawesome-free/css/all.min.css";
 
 function App() {
   const [query, setQuery] = useState("");
@@ -40,35 +39,37 @@ function App() {
     ];
 
     const currentDate = new Date();
-    const date = `${days[currentDate.getDay()]} ${currentDate.getDate()} ${months[currentDate.getMonth()]
-      }`;
+    const date = `${days[currentDate.getDay()]} ${currentDate.getDate()} ${
+      months[currentDate.getMonth()]
+    }`;
     return date;
   };
-  //new search function
-  const search = async (event) => {
-    console.log("API Key:", process.env.REACT_APP_WEATHER_API_KEY);
 
+  const search = async (event) => {
     event.preventDefault();
+
+    if (!query) {
+      alert("Please enter a city name!");
+      return;
+    }
+
     if (event.type === "click" || (event.type === "keypress" && event.key === "Enter")) {
       setWeather({ ...weather, loading: true });
       const apiKey = process.env.REACT_APP_WEATHER_API_KEY;
-      
       const url = `https://api.shecodes.io/weather/v1/current?query=${query}&key=${apiKey}`;
 
-      await axios
-        .get(url)
-        .then((res) => {
-          console.log("res", res);
-          setWeather({ data: res.data, loading: false, error: false });
-        })
-        .catch((error) => {
-          setWeather({ ...weather, data: {}, error: true });
-          console.log("error", error);
-        });
+      try {
+        const response = await axios.get(url);
+        setWeather({ data: response.data, loading: false, error: false });
+      } catch (error) {
+        setWeather({ ...weather, data: {}, error: true });
+        console.log("Error fetching weather data:", error);
+      }
     }
   };
 
   useEffect(() => {
+    // Default fetch for a specific location
     const fetchData = async () => {
       const apiKey = process.env.REACT_APP_WEATHER_API_KEY;
       const url = `https://api.shecodes.io/weather/v1/current?query=Rabat&key=${apiKey}`;
@@ -78,7 +79,7 @@ function App() {
         setWeather({ data: response.data, loading: false, error: false });
       } catch (error) {
         setWeather({ data: {}, loading: false, error: true });
-        console.log("error", error);
+        console.log("Error fetching initial weather data:", error);
       }
     };
 
@@ -87,15 +88,28 @@ function App() {
 
   return (
     <div className="App">
+      <h1>SheCodes Weather App</h1>
 
-      {/* SearchEngine component */}
-      <SearchEngine query={query} setQuery={setQuery} search={search} />
+      {/* Search functionality directly included */}
+      <form onSubmit={search} className="search-form">
+        <input
+          type="text"
+          placeholder="Enter city..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyPress={search}
+          className="search-input"
+        />
+        <button type="submit" className="search-button">
+          <i className="fas fa-search"></i>
+        </button>
+      </form>
 
       {weather.loading && (
         <>
           <br />
           <br />
-          <h4>Searching..</h4>
+          <h4>Searching...</h4>
         </>
       )}
 
@@ -105,7 +119,7 @@ function App() {
           <br />
           <span className="error-message">
             <span style={{ fontFamily: "font" }}>
-              Sorry city not found, please try again.
+              Sorry, city not found. Please try again.
             </span>
           </span>
         </>

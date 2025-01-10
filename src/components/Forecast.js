@@ -2,11 +2,10 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import ReactAnimatedWeather from "react-animated-weather";
 
-
 function Forecast({ weather }) {
   const { data } = weather;
   const [forecastData, setForecastData] = useState([]);
-  const [isCelsius, setIsCelsius] = useState(true); // Track temperature unit
+  const [isCelsius, setIsCelsius] = useState(true);
 
   useEffect(() => {
     const fetchForecastData = async () => {
@@ -15,19 +14,29 @@ function Forecast({ weather }) {
 
       try {
         const response = await axios.get(url);
-        setForecastData(response.data.daily);
+        setForecastData(response.data.daily); // Set daily forecast data
       } catch (error) {
-        console.log("Error fetching forecast data:", error);
+        console.error("Error fetching forecast data:", error);
       }
     };
 
-    fetchForecastData();
+    if (data.city) fetchForecastData();
   }, [data.city]);
 
-  const formatDay = (dateString) => {
+  const formatDay = (timestamp) => {
     const options = { weekday: "short" };
-    const date = new Date(dateString * 1000);
+    const date = new Date(timestamp * 1000);
     return date.toLocaleDateString("en-US", options);
+  };
+
+  const toggleTemperatureUnit = () => {
+    setIsCelsius((prevState) => !prevState);
+  };
+
+  const renderTemperature = (temperature) => {
+    return isCelsius
+      ? Math.round(temperature)
+      : Math.round((temperature * 9) / 5 + 32);
   };
 
   const getCurrentDate = () => {
@@ -35,30 +44,10 @@ function Forecast({ weather }) {
       weekday: "long",
       day: "numeric",
       month: "long",
-      year: "numeric"
+      year: "numeric",
     };
     const currentDate = new Date().toLocaleDateString("en-US", options);
     return currentDate;
-  };
-
-  const toggleTemperatureUnit = () => {
-    setIsCelsius((prevState) => !prevState);
-  };
-
-  const convertToCelsius = (temperature) => {
-    return Math.round((temperature - 32) * (5 / 9));
-  };
-
-  const convertToFahrenheit = (temperature) => {
-    return Math.round((temperature * 9) / 5 + 32);
-  };
-
-  const renderTemperature = (temperature) => {
-    if (isCelsius) {
-      return Math.round(temperature);
-    } else {
-      return convertToFahrenheit(temperature);
-    }
   };
 
   return (
@@ -79,30 +68,52 @@ function Forecast({ weather }) {
             className="temp-icon"
           />
         )}
-        {renderTemperature(data.temperature.current)}
-        <sup className="temp-deg" onClick={toggleTemperatureUnit}>
-          {isCelsius ? "°C" : "°F"} | {isCelsius ? "°F" : "°C"}
-        </sup>
+        <p>
+          {renderTemperature(data.temperature.current)}°
+          <sup onClick={toggleTemperatureUnit} className="toggle-temp">
+            {isCelsius ? "C" : "F"}
+          </sup>
+        </p>
       </div>
       <p className="weather-des">{data.condition.description}</p>
       <div className="weather-info">
         <div className="col">
-          <ReactAnimatedWeather icon="WIND" size="40"/>
+          <ReactAnimatedWeather icon="WIND" size={40} />
           <div>
-            <p className="wind">{data.wind.speed}m/s</p>
-            <p>Wind speed</p>
+            <p className="wind">{data.wind.speed} m/s</p>
+            <p>Wind Speed</p>
           </div>
         </div>
         <div className="col">
-          <ReactAnimatedWeather icon="RAIN" size="40"/>
+          <ReactAnimatedWeather icon="RAIN" size={40} />
           <div>
             <p className="humidity">{data.temperature.humidity}%</p>
             <p>Humidity</p>
-        </div>
+          </div>
         </div>
       </div>
+      {forecastData.length > 0 && (
+        <div className="forecast">
+          {/* // Next five days of forecast */}
+          <h3>Next 5-Day Forecast</h3>             
+          <div className="forecast-list">
+            {forecastData.slice(0, 5).map((day, index) => (
+              <div key={index} className="forecast-item">
+                <p>{formatDay(day.time)}</p>
+                <img
+                  src={day.condition.icon_url}
+                  alt={day.condition.description || "No description"}
+                />
+                <p>{renderTemperature(day.temperature.day)}°</p>
+                <p>Wind: {day.wind.speed} m/s</p>
+                <p>Humidity: {day.temperature.humidity}%</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
-}        
+}
 
 export default Forecast;
